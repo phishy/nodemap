@@ -71,11 +71,15 @@ class NodesController extends \lithium\action\Controller {
 	/**
 	 * creates a flat map of nodes
 	 */
-	function _getMap() {
+	function _getMap($flat = false) {
 		$nodes = Node::find('all');
 		$map = array();
 		foreach ($nodes as $node) {
-			$map[(string)$node->_id] = $node;
+			if ($flat) {
+				$map[(string)$node->_id] =$node->name;
+			} else {
+				$map[(string)$node->_id] = $node;
+			}
 		}
 		return $map;
 	}
@@ -100,8 +104,91 @@ class NodesController extends \lithium\action\Controller {
 			}
 			$out[] = $n;
 		}
-		//debug($out);exit;
+		debug($out);exit;
 		die(json_encode($out));
+	}
+	
+	function map() {
+		$map = array();
+		$map['sendit']['itdb'] = false;
+		$map['sendit']['it'] = false;
+		$map['it']['intrepid'] = false;
+		$map['intrepid']['stuff'] = false;
+		$map['stuff']['cool'] = false;
+		return $map;
+	}
+	
+	// Array
+	// (
+	//     [sendit] => Array
+	//         (
+	//             [itdb] => 
+	//             [it] => 
+	//         )
+	// 
+	//     [it] => Array
+	//         (
+	//             [intrepid] => 
+	//         )
+	// 
+	//     [intrepid] => Array
+	//         (
+	//             [stuff] => 
+	//         )
+	// 
+	// )
+	
+	function __build($key = null) {
+		static $i = 0;
+		$i++;
+		if ($i > 5) {
+			debug('recursion hell');
+			exit;
+		}
+		$out = array();
+		$map = $this->map();
+		// debug($map);exit;
+		if (array_key_exists($key, $map)) {
+			//debug("Found outer $key");
+			$attr = array_keys($map[$key]);
+			//debug($attr);
+			foreach ($attr as $a) {
+				if (array_key_exists($a, $map)) {
+					//debug("Found inner $a");
+					$out[$key] = $this->__build($a);
+				} else {
+					$out[$key][$a] = false;
+				}
+			}
+		} else {
+			$out[$key] = false;
+		}
+		//debug('returning...');
+		return $out;
+	}
+	
+	function build($key = 'sendit') {
+		$out = $this->__build('sendit');
+		debug($out);
+		exit;
+		// foreach ($map as $k => $v) {
+		// 	if (is_array($v)) {
+		// 		foreach ($v as $x => $y) {
+		// 			if (array_key_exists($x, $map)) {
+		// 				$attr = array_keys($map[$x]);
+		// 				foreach ($attr as $a) {
+		// 					$out[$k][$x][$a] = false;
+		// 				}
+		// 			} else {
+		// 				$out[$k][$x] = false;
+		// 			}
+		// 		}
+		// 	} else {
+		// 		
+		// 	}
+		// }
+		// debug($out);
+		// exit;
 	}
 	
 	/**
