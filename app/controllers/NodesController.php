@@ -3,6 +3,7 @@
 namespace app\controllers;
 
 use app\models\Node;
+use app\models\NodeType;
 
 function debug($v) {
 	print '<pre>';
@@ -69,6 +70,23 @@ class NodesController extends \lithium\action\Controller {
 	}
 	
 	/**
+	 * autocomplete node names
+	 */
+	function node_types() {
+		$out = array();
+		$nodes = NodeType::find('all');
+		foreach ($nodes as $node) {
+			$n = array(
+				'id'    => $node->id,
+				'label' => $node->name,
+				'value' => $node->name
+			);
+			$out[] = $n;
+		}
+		die(json_encode($out));
+	}
+	
+	/**
 	 * creates a flat map of nodes
 	 */
 	function _getMap($flat = false) {
@@ -115,46 +133,34 @@ class NodesController extends \lithium\action\Controller {
 		$map['it']['intrepid'] = false;
 		$map['intrepid']['stuff'] = false;
 		$map['stuff']['cool'] = false;
+		
+		// recursion hell
+		$map['cool']['sendit'] = false;
+
+		$map['peopledb']['oracle'] = false;
+
+		// reverse map
+		foreach ($map as $k => $v) {
+			$attr = array_keys($v);
+			foreach ($attr as $a) {
+				$map[$a][$k] = false;
+			}
+		}
 		return $map;
 	}
 	
-	// Array
-	// (
-	//     [sendit] => Array
-	//         (
-	//             [itdb] => 
-	//             [it] => 
-	//         )
-	// 
-	//     [it] => Array
-	//         (
-	//             [intrepid] => 
-	//         )
-	// 
-	//     [intrepid] => Array
-	//         (
-	//             [stuff] => 
-	//         )
-	// 
-	// )
-	
 	function __build($key = null) {
-		static $i = 0;
-		$i++;
-		if ($i > 5) {
-			debug('recursion hell');
-			exit;
+		static $stack = array();
+		if (in_array($key, $stack)) {
+			return false;
 		}
 		$out = array();
 		$map = $this->map();
-		// debug($map);exit;
 		if (array_key_exists($key, $map)) {
-			//debug("Found outer $key");
+			$stack[] = $key;
 			$attr = array_keys($map[$key]);
-			//debug($attr);
 			foreach ($attr as $a) {
 				if (array_key_exists($a, $map)) {
-					//debug("Found inner $a");
 					$out[$key] = $this->__build($a);
 				} else {
 					$out[$key][$a] = false;
@@ -163,12 +169,12 @@ class NodesController extends \lithium\action\Controller {
 		} else {
 			$out[$key] = false;
 		}
-		//debug('returning...');
+		array_pop($stack);
 		return $out;
 	}
 	
-	function build($key = 'sendit') {
-		$out = $this->__build('sendit');
+	function build($key = '') {
+		$out = $this->__build($key);
 		debug($out);
 		exit;
 		// foreach ($map as $k => $v) {
